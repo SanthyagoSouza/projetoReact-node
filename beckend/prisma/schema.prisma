@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model clientes {
+  idcliente Int              @id @default(autoincrement())
+  nome      String           @db.VarChar(150)
+  email     String           @db.VarChar(150)
+  status    clientes_status? @default(ativo)
+  criado_em DateTime?        @default(now()) @db.DateTime(0)
+  contratos contratos[]
+  usuarios  usuarios[]
+}
+
+model contratos {
+  idcontrato  Int               @id @default(autoincrement())
+  idcliente   Int?
+  idplano     Int?
+  status      contratos_status? @default(ativo)
+  data_inicio DateTime?         @db.Date
+  data_fim    DateTime?         @db.Date
+  criado_em   DateTime?         @default(now()) @db.DateTime(0)
+  clientes    clientes?         @relation(fields: [idcliente], references: [idcliente], onDelete: Restrict, onUpdate: Restrict, map: "contratos_ibfk_1")
+  planos      planos?           @relation(fields: [idplano], references: [idplano], onDelete: Restrict, onUpdate: Restrict, map: "contratos_ibfk_2")
+
+  @@index([idcliente], map: "idcliente")
+  @@index([idplano], map: "idplano")
+}
+
+model funcionalidades {
+  idfuncionalidade     Int                    @id @default(autoincrement())
+  nome                 String?                @db.VarChar(100)
+  chave                String?                @unique(map: "chave") @db.VarChar(100)
+  plano_funcionalidade plano_funcionalidade[]
+}
+
+model modulos {
+  idmodulo         Int                @id @default(autoincrement())
+  nome             String?            @db.VarChar(100)
+  rota             String?            @db.VarChar(150)
+  icone            String?            @db.VarChar(100)
+  secao            String?            @db.VarChar(100)
+  ordem            Int?               @default(0)
+  ativo            Boolean?           @default(true)
+  permissao_modulo permissao_modulo[]
+}
+
+model permissao_modulo {
+  idpermissao Int
+  idmodulo    Int
+  permissoes  permissoes @relation(fields: [idpermissao], references: [idpermissao], onUpdate: Restrict, map: "permissao_modulo_ibfk_1")
+  modulos     modulos    @relation(fields: [idmodulo], references: [idmodulo], onUpdate: Restrict, map: "permissao_modulo_ibfk_2")
+
+  @@id([idpermissao, idmodulo])
+  @@index([idmodulo], map: "idmodulo")
+}
+
+model permissoes {
+  idpermissao      Int                @id @default(autoincrement())
+  chave            String             @unique(map: "chave") @db.VarChar(100)
+  permissao_modulo permissao_modulo[]
+  role_permissao   role_permissao[]
+}
+
+model plano_funcionalidade {
+  idplano          Int
+  idfuncionalidade Int
+  habilitado       Boolean?        @default(true)
+  planos           planos          @relation(fields: [idplano], references: [idplano], onUpdate: Restrict, map: "plano_funcionalidade_ibfk_1")
+  funcionalidades  funcionalidades @relation(fields: [idfuncionalidade], references: [idfuncionalidade], onUpdate: Restrict, map: "plano_funcionalidade_ibfk_2")
+
+  @@id([idplano, idfuncionalidade])
+  @@index([idfuncionalidade], map: "idfuncionalidade")
+}
+
+model planos {
+  idplano              Int                    @id @default(autoincrement())
+  nome                 String?                @db.VarChar(120)
+  valor                Decimal?               @db.Decimal(10, 2)
+  limite_usuarios      Int?                   @default(1)
+  ativo                Boolean?               @default(true)
+  contratos            contratos[]
+  plano_funcionalidade plano_funcionalidade[]
+}
+
+model role_permissao {
+  idrole      Int
+  idpermissao Int
+  roles       roles      @relation(fields: [idrole], references: [idrole], onUpdate: Restrict, map: "role_permissao_ibfk_1")
+  permissoes  permissoes @relation(fields: [idpermissao], references: [idpermissao], onUpdate: Restrict, map: "role_permissao_ibfk_2")
+
+  @@id([idrole, idpermissao])
+  @@index([idpermissao], map: "idpermissao")
+}
+
+model roles {
+  idrole         Int              @id @default(autoincrement())
+  nome           String           @db.VarChar(50)
+  role_permissao role_permissao[]
+  usuario_role   usuario_role[]
+}
+
+model usuario_role {
+  idusuario Int
+  idrole    Int
+  usuarios  usuarios @relation(fields: [idusuario], references: [idusuario], onUpdate: Restrict, map: "usuario_role_ibfk_1")
+  roles     roles    @relation(fields: [idrole], references: [idrole], onUpdate: Restrict, map: "usuario_role_ibfk_2")
+
+  @@id([idusuario, idrole])
+  @@index([idrole], map: "idrole")
+}
+
+model usuarios {
+  idusuario    Int            @id @default(autoincrement())
+  idcliente    Int?
+  nome         String         @db.VarChar(150)
+  email        String         @unique(map: "email") @db.VarChar(150)
+  senha        String         @db.VarChar(255)
+  tipo         usuarios_tipo? @default(CLIENTE)
+  status       Boolean?       @default(true)
+  img          String?        @db.VarChar(255)
+  criado_em    DateTime?      @default(now()) @db.DateTime(0)
+  usuario_role usuario_role[]
+  clientes     clientes?      @relation(fields: [idcliente], references: [idcliente], onDelete: Restrict, onUpdate: Restrict, map: "usuarios_ibfk_1")
+
+  @@index([idcliente], map: "idcliente")
+}
+
+enum clientes_status {
+  ativo
+  suspenso
+  cancelado
+}
+
+enum contratos_status {
+  ativo
+  suspenso
+  cancelado
+}
+
+enum usuarios_tipo {
+  MASTER
+  GERENCIAL
+  CLIENTE
+}
