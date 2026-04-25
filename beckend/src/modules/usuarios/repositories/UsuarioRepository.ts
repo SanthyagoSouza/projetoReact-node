@@ -5,4 +5,18 @@ export class UsuarioRepository {
   async listarUsuarios() {
     return await prisma.usuarios.findMany();
   }
+
+  async listarUsuariosPorCliente(clienteId: number) {
+    return await prisma.usuarios.findMany({
+      where: {
+        idcliente: clienteId,
+      },
+    });
+  }
+
+  async buscarPorEmail(email: string) {
+    return await prisma.usuarios.findUnique({
+      where: { email },
+    });
+  }
 }
